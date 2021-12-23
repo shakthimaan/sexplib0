@@ -109,8 +109,17 @@ module Exn_converter = struct
       }
   end
 
+  module Pair = struct
+    type ('k, 'd) t = 'k * ('d option)
+    let create : 'a -> 'b option -> ('a, 'b) t = fun key data -> (key, data)
+
+    let get_data : ('a, 'b) t -> 'b option = fun pair -> match snd pair with None -> None | Some x -> Some x
+
+    let get_key : ('a, 'b) t -> 'a = fun pair -> fst pair
+  end
+
   let exn_id_map
-    : (Obj.Extension_constructor.t, Registration.t) Ephemeron.K1.t Exn_ids.t ref
+    : (Obj.Extension_constructor.t, Registration.t) Pair.t Exn_ids.t ref
     =
     ref Exn_ids.empty
   ;;
@@ -133,9 +142,9 @@ module Exn_converter = struct
     let id = Obj.Extension_constructor.id extension_constructor in
     let rec loop () =
       let old_exn_id_map = !exn_id_map in
-      let ephe = Ephemeron.K1.create () in
-      Ephemeron.K1.set_data ephe ({ sexp_of_exn; printexc } : Registration.t);
-      Ephemeron.K1.set_key ephe extension_constructor;
+      let data = ({ sexp_of_exn; printexc } : Registration.t) in
+      let key  = extension_constructor in
+      let ephe = Pair.create key data in
       let new_exn_id_map = Exn_ids.add old_exn_id_map ~key:id ~data:ephe in
       (* This trick avoids mutexes and should be fairly efficient *)
       if !exn_id_map != old_exn_id_map
@@ -161,7 +170,7 @@ module Exn_converter = struct
     match Exn_ids.find id !exn_id_map with
     | exception Not_found -> None
     | ephe ->
-      (match Ephemeron.K1.get_data ephe with
+      (match Pair.get_data ephe with
        | None -> None
        | Some { sexp_of_exn; printexc } ->
          (match for_printexc, printexc with
@@ -172,7 +181,7 @@ module Exn_converter = struct
   module For_unit_tests_only = struct
     let size () =
       Exn_ids.fold !exn_id_map ~init:0 ~f:(fun ~key:_ ~data:ephe acc ->
-        match Ephemeron.K1.get_data ephe with
+        match Pair.get_data ephe with
         | None -> acc
         | Some _ -> acc + 1)
     ;;
