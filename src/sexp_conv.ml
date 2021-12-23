@@ -103,6 +103,9 @@ module Exn_converter = struct
       [@@@ocaml.warning "-3"]
       type t = extension_constructor
       let id = Obj.extension_id
+      let equal = (==)
+
+      let hash = Obj.extension_id
       let of_val = Obj.extension_constructor
     end
   end
