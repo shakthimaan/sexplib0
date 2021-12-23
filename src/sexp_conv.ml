@@ -107,14 +107,14 @@ module Exn_converter = struct
     end
   end
 
-  module Pair = struct
+  (* module Pair = struct
     type ('k, 'd) t = 'k * 'd
     let create : 'a -> 'b -> ('a , 'b) t = fun key data -> (key, data)
     let get_data : ('a, 'b) t -> 'b= fun pair -> snd pair
-  end
+  end *)
 
   let exn_id_map
-    : (Obj.Extension_constructor.t, exn -> Sexp.t) Pair.t Exn_ids.t ref =
+    : (Obj.Extension_constructor.t * exn -> Sexp.t) Exn_ids.t ref =
     ref Exn_ids.empty
 
   (* [Obj.extension_id] works on both the exception itself, and the extension slot of the
@@ -137,7 +137,7 @@ module Exn_converter = struct
       let old_exn_id_map = !exn_id_map in
       let data = sexp_of_exn in
       let key = extension_constructor in
-      let ephe = Pair.create key data in
+      let ephe = (key, data) in
       let new_exn_id_map = Exn_ids.add old_exn_id_map ~key:id ~data:ephe in
       (* This trick avoids mutexes and should be fairly efficient *)
       if !exn_id_map != old_exn_id_map then
@@ -161,13 +161,13 @@ module Exn_converter = struct
     let id = Obj.Extension_constructor.id (Obj.Extension_constructor.of_val exn) in
     match Exn_ids.find id !exn_id_map with
     | exception Not_found -> None
-    | ephe -> let sexp_of_exn = Pair.get_data ephe in
+    | ephe -> let sexp_of_exn = snd ephe in
       Some (sexp_of_exn exn)
 
 
   module For_unit_tests_only = struct
     let size () = Exn_ids.fold !exn_id_map ~init:0 ~f:(fun ~key:_ ~data:ephe acc ->
-      (Pair.get_data ephe) + 1
+      (snd ephe) + 1
     )
   end
 
