@@ -108,9 +108,9 @@ module Exn_converter = struct
   end
 
   module Pair = struct
-    type ('k, 'd) t = 'k * ('d option)
-    let create : 'a -> 'b option -> ('a , 'b) t = fun key data -> (key, data)
-    let get_data : ('a, 'b) t -> 'b option = fun pair -> snd pair
+    type ('k, 'd) t = 'k * 'd
+    let create : 'a -> 'b -> ('a , 'b) t = fun key data -> (key, data)
+    let get_data : ('a, 'b) t -> 'b= fun pair -> snd pair
   end
 
   let exn_id_map
@@ -161,17 +161,13 @@ module Exn_converter = struct
     let id = Obj.Extension_constructor.id (Obj.Extension_constructor.of_val exn) in
     match Exn_ids.find id !exn_id_map with
     | exception Not_found -> None
-    | ephe ->
-      match Pair.get_data ephe with
-      | None -> None
-      | Some sexp_of_exn -> Some (sexp_of_exn exn)
+    | ephe -> let sexp_of_exn = Pair.get_data ephe in
+      sexp_of_exn exn
 
 
   module For_unit_tests_only = struct
     let size () = Exn_ids.fold !exn_id_map ~init:0 ~f:(fun ~key:_ ~data:ephe acc ->
-      match Pair.get_data ephe with
-      | None -> acc
-      | Some _ -> acc + 1
+      (Pair.get_data ephe) + 1
     )
   end
 
