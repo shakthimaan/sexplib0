@@ -162,7 +162,7 @@ module Exn_converter = struct
     match Exn_ids.find id !exn_id_map with
     | exception Not_found -> None
     | ephe -> let sexp_of_exn = Pair.get_data ephe in
-      sexp_of_exn exn
+      Some (sexp_of_exn exn)
 
 
   module For_unit_tests_only = struct
