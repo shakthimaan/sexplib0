@@ -96,8 +96,8 @@ module Exn_converter = struct
 
       type t = extension_constructor
 
-      let id = Obj.extension_id
-      let of_val = Obj.extension_constructor
+      let id = Obj.Extension_constructor.id
+      let of_val = Obj.Extension_constructor.of_val
     end
   end
 
